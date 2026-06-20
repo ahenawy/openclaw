@@ -122,6 +122,11 @@ if (-not $PSBoundParameters.ContainsKey("InstallMethod")) {
         $InstallMethod = $env:OPENCLAW_INSTALL_METHOD
     }
 }
+if (-not $PSBoundParameters.ContainsKey("Tag")) {
+    if (-not [string]::IsNullOrWhiteSpace($env:OPENCLAW_VERSION)) {
+        $Tag = $env:OPENCLAW_VERSION
+    }
+}
 if (-not $PSBoundParameters.ContainsKey("GitDir")) {
     if (-not [string]::IsNullOrWhiteSpace($env:OPENCLAW_GIT_DIR)) {
         $GitDir = $env:OPENCLAW_GIT_DIR
@@ -1238,12 +1243,16 @@ function Install-OpenClawFromGit {
         return $false
     }
 
-    $repoUrl = "https://github.com/openclaw/openclaw.git"
+    $repoUrl = if ($env:OPENCLAW_GIT_REMOTE) { $env:OPENCLAW_GIT_REMOTE } else { "https://github.com/openclaw/openclaw.git" }
     Write-Host "[*] Installing OpenClaw from GitHub ($repoUrl)..." -ForegroundColor Yellow
 
     if (-not (Test-Path $RepoDir)) {
         git clone $repoUrl $RepoDir
     }
+
+    # Check out the requested branch (e.g. next) — clone lands on the repo's default branch.
+    try { git -C $RepoDir fetch --no-tags origin $Tag 2>$null } catch {}
+    try { git -C $RepoDir checkout -B $Tag "origin/$Tag" 2>$null } catch {}
 
     if (-not $SkipUpdate) {
         # PowerShell 7+ surfaces native-command stderr as terminating errors when
