@@ -254,60 +254,56 @@ function mimeForImageExtension(pathOrUrl: string): string | null {
  * (worker → session.caller); per-utterance speaker labels already arrive as a "Name:" transcript
  * prefix, so this preamble just teaches the model to use them.
  */
-function withRosterInstruction(
-  instructions: string | undefined,
-  callerName: string | undefined,
-): string | undefined {
+function rosterClause(callerName: string | undefined): string | undefined {
   const name = callerName?.trim();
   if (!name) {
-    return instructions;
+    return undefined;
   }
-  const clause = [
+  return [
     `CALLER IDENTITY: You are speaking with ${name}. Greet them by their first name once, warmly`,
     "and briefly, then continue naturally — do not repeat their name every turn. In a group call,",
     'each caller turn is prefixed with the speaker\'s name (e.g. "Sara: ..."); use those names to',
     "address people directly when it helps, but never read the prefix aloud as part of your reply.",
   ].join(" ");
-  return instructions ? `${instructions}\n\n${clause}` : clause;
 }
 
 /**
  * Bilingual mode (#19): pin Arabic↔English language behavior. The realtime model already mirrors
  * languages, but this makes it explicit and adds on-request translation between the two.
  */
-function withBilingualInstruction(
-  instructions: string | undefined,
-  bilingual: boolean | undefined,
-): string | undefined {
+function bilingualClause(bilingual: boolean | undefined): string | undefined {
   if (!bilingual) {
-    return instructions;
+    return undefined;
   }
-  const clause = [
+  return [
     "BILINGUAL (Arabic / English): Detect the language the caller is speaking — Arabic or English —",
     "and always reply in that same language, matching dialect and register. If the caller switches",
     "language mid-call, switch with them. When asked to translate, translate accurately between",
     "Arabic and English and read out only the translation.",
   ].join(" ");
-  return instructions ? `${instructions}\n\n${clause}` : clause;
 }
 
-function withGroupGateInstruction(
-  instructions: string | undefined,
-  gate: GroupCallGateConfig | undefined,
-): string | undefined {
+function groupGateClause(gate: GroupCallGateConfig | undefined): string | undefined {
   const phrases = gate?.wakePhrases?.filter((p) => p.trim().length > 0) ?? [];
   if (!gate?.requireAddress || phrases.length === 0) {
-    return instructions;
+    return undefined;
   }
   const names = phrases.map((p) => `"${p}"`).join(", ");
-  const clause = [
+  return [
     "GROUP-CALL ETIQUETTE: If more than one person is on this call (a group meeting), do NOT reply",
     `unless someone addresses you by name (${names}) or clearly directs a question to you. When you`,
     "are not addressed, stay silent and just listen — do not narrate, acknowledge, or interject.",
     "Once addressed, you may continue a short back-and-forth until the topic moves on. In a",
     "one-on-one call (only you and one person), respond normally to everything.",
   ].join(" ");
-  return instructions ? `${instructions}\n\n${clause}` : clause;
+}
+
+/** Append each non-empty clause to the base instructions, separated by blank lines. */
+function appendClauses(
+  base: string | undefined,
+  ...clauses: (string | undefined)[]
+): string | undefined {
+  return [base, ...clauses].filter((c): c is string => !!c?.trim()).join("\n\n") || undefined;
 }
 
 export interface MsteamsRealtimeDeps {
@@ -642,12 +638,11 @@ export function createMsteamsRealtimeCall(params: {
     cfg: deps.cfg,
     providerConfig: deps.providerConfig,
     audioFormat: REALTIME_VOICE_AUDIO_FORMAT_PCM16_24KHZ,
-    instructions: withGroupGateInstruction(
-      withBilingualInstruction(
-        withRosterInstruction(deps.instructions, session.caller.displayName ?? undefined),
-        deps.voiceConfig?.msteams?.bilingual,
-      ),
-      deps.groupCallGate,
+    instructions: appendClauses(
+      deps.instructions,
+      rosterClause(session.caller.displayName ?? undefined),
+      bilingualClause(deps.voiceConfig?.msteams?.bilingual),
+      groupGateClause(deps.groupCallGate),
     ),
     initialGreetingInstructions: deps.greetingInstructions,
     // Outbound call-backs greet on ANSWER (setRecordingActive), not on connect — the bridge is ready
