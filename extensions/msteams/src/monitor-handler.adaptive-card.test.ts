@@ -260,7 +260,7 @@ describe("msteams adaptive card action invoke", () => {
     deps.cfg = {
       channels: { msteams: { groupPolicy: "open" } },
     } as unknown as OpenClawConfig;
-    const { handler } = createActivityHandler();
+    const handler = createActivityHandler();
     const registered = registerMSTeamsHandlers(handler, deps) as MSTeamsActivityHandler & {
       run: NonNullable<MSTeamsActivityHandler["run"]>;
     };

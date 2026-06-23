@@ -9,6 +9,7 @@
   "type": "module",
   "dependencies": {
     "commander": "14.0.3",
+    "jszip": "3.10.1",
     "typebox": "1.1.39",
     "ws": "8.21.0",
     "zod": "4.4.3"

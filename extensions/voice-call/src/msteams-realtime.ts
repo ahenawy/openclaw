@@ -20,7 +20,6 @@
  */
 
 import { readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
@@ -41,6 +40,7 @@ import {
   type RealtimeVoiceToolCallEvent,
 } from "openclaw/plugin-sdk/realtime-voice";
 import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";
+import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/temp-path";
 import type { VoiceCallConfig } from "./config.js";
 import type { CoreAgentDeps } from "./core-bridge.js";
 import { inferEmotion } from "./expression.js";
@@ -303,7 +303,8 @@ function appendClauses(
   base: string | undefined,
   ...clauses: (string | undefined)[]
 ): string | undefined {
-  return [base, ...clauses].filter((c): c is string => !!c?.trim()).join("\n\n") || undefined;
+  const parts = [base, ...clauses].filter((c): c is string => c != null && c.trim().length > 0);
+  return parts.length > 0 ? parts.join("\n\n") : undefined;
 }
 
 export interface MsteamsRealtimeDeps {
@@ -480,7 +481,7 @@ export function createMsteamsRealtimeCall(params: {
   // partial, or echo-suppressed wake transcript can no longer strand the bot permanently silent.
   // (bugfix: group-meeting wake failure)
   const groupGateActive =
-    !!deps.groupCallGate &&
+    deps.groupCallGate != null &&
     deps.groupCallGate.requireAddress &&
     deps.groupCallGate.wakePhrases.some((p) => p.trim().length > 0);
   /** Active speaker (unmixed-audio worker); labels the caller turn the model transcribes next. */
@@ -1367,7 +1368,7 @@ export function createMsteamsRealtimeCall(params: {
     // go to the caller (user:<aadId>) and a group recap to the meeting thread — and a failed/absent DM
     // reference can never fall back to the operator's own chat. (bugfix: minutes to wrong recipient)
     const isGroupRecap = humanCount >= 2 && Boolean(session.threadId?.trim());
-    const recapTarget = isGroupRecap ? `conversation:${session.threadId!.trim()}` : `user:${aadId}`;
+    const recapTarget = isGroupRecap ? `conversation:${session.threadId.trim()}` : `user:${aadId}`;
     const deliveryContext = { channel: "msteams", to: recapTarget } as const;
     try {
       logger?.info(`MsteamsRealtime: posting meeting recap for ${callId}`);
@@ -1415,10 +1416,10 @@ export function createMsteamsRealtimeCall(params: {
             (t): MinutesTranscriptEntry => ({ role: t.role, text: t.text }),
           ),
         });
-        // Prefer the agent's workspace dir: it is always an allowed outbound-media local root, so the
-        // attachment reaches Teams even when host-media reads (the OS tmpdir) are policy-disabled.
-        // Fall back to the OS tmpdir if the workspace can't be resolved/created.
-        let outDir = tmpdir();
+        // Prefer the agent's workspace dir (an allowed outbound-media local root). Fall back to the
+        // OpenClaw-owned temp dir — NOT the host OS tmpdir — so the attachment stays within owned
+        // roots and passes the messaging temp guard.
+        let outDir = resolvePreferredOpenClawTmpDir();
         try {
           const workspaceDir = agentRuntime.resolveAgentWorkspaceDir(cfg, consultAgentId);
           if (workspaceDir) {
@@ -1426,7 +1427,7 @@ export function createMsteamsRealtimeCall(params: {
             outDir = workspaceDir;
           }
         } catch {
-          // keep the tmpdir fallback
+          // keep the owned-temp fallback
         }
         docxPath = join(outDir, `meeting-minutes-${callId}.docx`);
         await writeFile(docxPath, buffer);
