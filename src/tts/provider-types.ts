@@ -86,6 +86,11 @@ export type SpeechTelephonySynthesisRequest = {
   providerConfig: SpeechProviderConfig;
   providerOverrides?: SpeechProviderOverrides;
   timeoutMs: number;
+  /**
+   * Opt in to per-character alignment (e.g. ElevenLabs `/with-timestamps`) for callers that drive
+   * viseme/lip-sync. Off by default so plain telephony stays a single synthesis call.
+   */
+  withTimestamps?: boolean;
 };
 
 /**

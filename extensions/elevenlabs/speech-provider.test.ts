@@ -180,6 +180,7 @@ describe("elevenlabs speech provider", () => {
           speed: 1.2,
         },
       },
+      withTimestamps: true,
       timeoutMs: 1_000,
     });
 
@@ -200,6 +201,7 @@ describe("elevenlabs speech provider", () => {
       text: "hi",
       cfg: {} as never,
       providerConfig: { apiKey: "xi-test" },
+      withTimestamps: true,
       timeoutMs: 1_000,
     });
 
@@ -221,6 +223,7 @@ describe("elevenlabs speech provider", () => {
       text: "hi",
       cfg: {} as never,
       providerConfig: { apiKey: "xi-test" },
+      withTimestamps: true,
       timeoutMs: 1_000,
     });
 
@@ -261,6 +264,7 @@ describe("elevenlabs speech provider", () => {
           speed: 0.1,
         },
       },
+      withTimestamps: true,
       timeoutMs: 1_000,
     });
 
@@ -286,6 +290,7 @@ describe("elevenlabs speech provider", () => {
       providerOverrides: {
         seed: Number.POSITIVE_INFINITY,
       },
+      withTimestamps: true,
       timeoutMs: 1_000,
     });
 

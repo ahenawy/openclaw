@@ -54,7 +54,12 @@ export function createMsteamsTtsProvider(params: {
   const mergedConfig = applyTtsOverride(coreConfig, ttsOverride);
 
   const synthesizePcm16kWithTiming = async (text: string) => {
-    const result = await runtime.textToSpeechTelephony({ text, cfg: mergedConfig });
+    // msteams drives avatar viseme/lip-sync, so opt in to provider character alignment.
+    const result = await runtime.textToSpeechTelephony({
+      text,
+      cfg: mergedConfig,
+      withTimestamps: true,
+    });
 
     if (!result.success || !result.audioBuffer || !result.sampleRate) {
       throw new Error(result.error ?? "msteams TTS synthesis failed");

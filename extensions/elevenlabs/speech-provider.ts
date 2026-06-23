@@ -585,9 +585,14 @@ export function buildElevenLabsSpeechProvider(): SpeechProviderPlugin {
       const outputFormat = "pcm_22050";
       const sampleRate = 22_050;
       const requestParams = resolveElevenLabsTtsRequest(req, { outputFormat });
-      // Prefer the with-timestamps endpoint so call transports can drive viseme/lip-sync timelines
-      // from real per-character timing. If that endpoint is unavailable (plan/proxy restrictions),
-      // fall back to plain synthesis rather than failing the call's audio entirely.
+      // Plain telephony (default): one synthesis call.
+      if (!req.withTimestamps) {
+        const audioBuffer = await elevenLabsTTS(requestParams);
+        return { audioBuffer, outputFormat, sampleRate };
+      }
+      // Caller opted in to alignment (viseme/lip-sync): prefer the with-timestamps endpoint so call
+      // transports can drive lip-sync from real per-character timing. If that endpoint is unavailable
+      // (plan/proxy restrictions), fall back to plain synthesis rather than failing the call's audio.
       try {
         const { audioBuffer, alignment } = await elevenLabsTTSWithTimestamps(requestParams);
         return { audioBuffer, outputFormat, sampleRate, alignment };

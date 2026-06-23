@@ -20,6 +20,8 @@ export type TelephonyTtsRuntime = {
     cfg: CoreConfig;
     prefsPath?: string;
     overrides?: TtsDirectiveOverrides;
+    /** Opt in to provider character alignment (e.g. ElevenLabs with-timestamps) for viseme/lip-sync. */
+    withTimestamps?: boolean;
   }) => Promise<{
     success: boolean;
     audioBuffer?: Buffer;

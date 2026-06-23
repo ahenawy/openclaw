@@ -1763,6 +1763,8 @@ export async function textToSpeechTelephony(params: {
   prefsPath?: string;
   overrides?: TtsDirectiveOverrides;
   timeoutMs?: number;
+  /** Opt in to provider character alignment (e.g. ElevenLabs with-timestamps) for viseme/lip-sync. */
+  withTimestamps?: boolean;
 }): Promise<TtsTelephonyResult> {
   const setup = resolveTtsRequestSetup({
     text: params.text,
@@ -1840,6 +1842,7 @@ export async function textToSpeechTelephony(params: {
         providerConfig: prepared.providerConfig,
         providerOverrides: prepared.providerOverrides,
         timeoutMs,
+        withTimestamps: params.withTimestamps,
       });
       const latencyMs = Date.now() - providerStart;
       attempts.push({

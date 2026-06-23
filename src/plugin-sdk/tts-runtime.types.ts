@@ -100,6 +100,8 @@ export type TtsTelephonyRequestParams = {
   cfg: OpenClawConfig;
   prefsPath?: string;
   overrides?: TtsDirectiveOverrides;
+  /** Opt in to provider character alignment (e.g. ElevenLabs with-timestamps) for viseme/lip-sync. */
+  withTimestamps?: boolean;
 };
 
 /** Inputs for listing voices from a speech provider with optional resolved config. */
